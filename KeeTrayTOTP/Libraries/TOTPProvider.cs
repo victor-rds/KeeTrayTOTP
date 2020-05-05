@@ -27,7 +27,7 @@ namespace KeeTrayTOTP.Libraries
             {
                 if (value <= 0)
                 {
-                    throw new Exception("Invalid Duration."); //Throws an exception if the duration is invalid as the class cannot work without it.
+                    throw new InvalidOperationException("Invalid Duration."); //Throws an exception if the duration is invalid as the class cannot work without it.
                 }
 
                 this._duration = value;
@@ -49,7 +49,7 @@ namespace KeeTrayTOTP.Libraries
                 //Throws an exception if the length is invalid as the class cannot work without it.
                 if (value < 4 || value > 8)
                 {
-                    throw new Exception("Invalid Length.");
+                    throw new InvalidOperationException("Invalid Length.");
                 }
 
                 this._length = value; //Defines variable from argument.
@@ -176,8 +176,12 @@ namespace KeeTrayTOTP.Libraries
                     Array.Reverse(totp);
                 }
 
-                return this.Encoder(totp, _length);
+                LastCode = this.Encoder(totp, _length);
+
+                return LastCode;
             }
         }
+
+        public string LastCode { get; private set; }
     }
 }
