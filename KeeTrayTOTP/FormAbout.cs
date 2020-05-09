@@ -38,7 +38,7 @@ namespace KeeTrayTOTP
             ListViewAbout.Items[0].SubItems.Add(AssemblyTitle);
             ListViewAbout.Items[1].SubItems.Add(AssemblyCompany);
             ListViewAbout.Items[2].SubItems.Add(AssemblyVersion);
-            ListViewAbout.Items[3].SubItems.Add(AssemblyTrademark);
+            ListViewAbout.Items[3].SubItems.Add(CommitDate);
             ListViewAbout.Items[4].SubItems.Add(SupportUrl.AbsoluteUri);
             LabelCopyright.Text = AssemblyCopyright;
 
@@ -52,16 +52,7 @@ namespace KeeTrayTOTP
         {
             get
             {
-                object[] attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyTitleAttribute), false);
-                if (attributes.Length > 0)
-                {
-                    var titleAttribute = (AssemblyTitleAttribute)attributes[0];
-                    if (titleAttribute.Title != string.Empty)
-                    {
-                        return titleAttribute.Title;
-                    }
-                }
-                return System.IO.Path.GetFileNameWithoutExtension(Assembly.GetExecutingAssembly().CodeBase);
+                return ThisAssembly.AssemblyName;
             }
         }
 
@@ -72,39 +63,7 @@ namespace KeeTrayTOTP
         {
             get
             {
-                return Assembly.GetExecutingAssembly().GetName().Version.ToString();
-            }
-        }
-
-        /// <summary>
-        /// Gets the assembly's description
-        /// </summary>
-        internal string AssemblyDescription
-        {
-            get
-            {
-                object[] attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyDescriptionAttribute), false);
-                if (attributes.Length == 0)
-                {
-                    return string.Empty;
-                }
-                return ((AssemblyDescriptionAttribute)attributes[0]).Description;
-            }
-        }
-
-        /// <summary>
-        /// Gets the assembly's product name
-        /// </summary>
-        internal string AssemblyProduct
-        {
-            get
-            {
-                object[] attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyProductAttribute), false);
-                if (attributes.Length == 0)
-                {
-                    return string.Empty;
-                }
-                return ((AssemblyProductAttribute)attributes[0]).Product;
+                return ThisAssembly.AssemblyInformationalVersion;
             }
         }
 
@@ -115,28 +74,19 @@ namespace KeeTrayTOTP
         {
             get
             {
-                object[] attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyCopyrightAttribute), false);
-                if (attributes.Length == 0)
-                {
-                    return string.Empty;
-                }
-                return ((AssemblyCopyrightAttribute)attributes[0]).Copyright;
+                var attribute = GetAssemblyAttribute<AssemblyCopyrightAttribute>();
+                return attribute != null ? attribute.Copyright : null;
             }
         }
 
         /// <summary>
-        /// Gets the assembly's trademark
-        ///  </summary>
-        internal string AssemblyTrademark
+        /// Gets the commit date
+        /// </summary>
+        internal string CommitDate
         {
             get
             {
-                object[] attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyTrademarkAttribute), false);
-                if (attributes.Length == 0)
-                {
-                    return string.Empty;
-                }
-                return ((AssemblyTrademarkAttribute)attributes[0]).Trademark;
+                return ThisAssembly.GitCommitDate.ToString("o");
             }
         }
 
@@ -147,12 +97,8 @@ namespace KeeTrayTOTP
         {
             get
             {
-                object[] attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyCompanyAttribute), false);
-                if (attributes.Length == 0)
-                {
-                    return string.Empty;
-                }
-                return ((AssemblyCompanyAttribute)attributes[0]).Company;
+                var attribute = GetAssemblyAttribute<AssemblyCompanyAttribute>();
+                return attribute != null ? attribute.Company : null;
             }
         }
 
@@ -184,7 +130,6 @@ namespace KeeTrayTOTP
             ListViewAbout.Items[RowIndex].UseItemStyleForSubItems = false;
             ListViewAbout.Items[RowIndex].SubItems[1].Font = new Font("Microsoft Sans Serif", 8, FontStyle.Underline);
             ListViewAbout.Items[RowIndex].SubItems[1].ForeColor = color;
-
         }
 
         /// <summary>
@@ -203,6 +148,11 @@ namespace KeeTrayTOTP
             {
                 ListViewAbout.Cursor = Cursors.Default;
             }
+        }
+
+        private static T GetAssemblyAttribute<T>() where T : Attribute
+        {
+            return Assembly.GetExecutingAssembly().GetCustomAttribute(typeof(T)) as T;
         }
     }
 }
