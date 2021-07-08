@@ -1,8 +1,8 @@
 ﻿using KeePassLib;
-using KeePassLib.Security;
 using KeeTrayTOTP.Libraries;
 using System;
 using System.Collections.ObjectModel;
+using System.Text.RegularExpressions;
 
 namespace KeeTrayTOTP.Helpers
 {
@@ -99,7 +99,7 @@ namespace KeeTrayTOTP.Helpers
         /// <returns>Validity of the Seed's characters for Base32 format.</returns>
         internal bool SeedValidate(PwEntry entry)
         {
-            return SeedGet(entry).ReadString().ExtWithoutSpaces().IsBase32();
+            return GetCleanSeed(entry).IsBase32();
         }
 
         /// <summary>
@@ -109,16 +109,26 @@ namespace KeeTrayTOTP.Helpers
         /// <returns>Validity of the Seed's characters.</returns>
         internal bool SeedValidate(PwEntry entry, out string invalidCharacters)
         {
-            return SeedGet(entry).ReadString().ExtWithoutSpaces().IsBase32(out invalidCharacters);
+            return GetCleanSeed(entry).IsBase32(out invalidCharacters);
         }
 
         /// <summary>
         /// Get the entry's Seed using the string name specified in the settings (or default).
         /// </summary>
         /// <returns>Protected Seed.</returns>
-        internal ProtectedString SeedGet(PwEntry entry)
+        internal string GetCleanSeed(PwEntry entry)
         {
-            return entry.Strings.Get(_settings.TOTPSeedStringName);
+            var rawSeed = entry.Strings.Get(_settings.TOTPSeedStringName).ReadString();
+            return Regex.Replace(rawSeed, @"\s+", "").TrimEnd('=');
+        }
+
+        /// <summary>
+        /// Get the entry's Seed using the string name specified in the settings (or default).
+        /// </summary>
+        /// <returns>Protected Seed.</returns>
+        internal byte[] GetByteSeed(PwEntry entry)
+        {
+            return Base32.Decode(GetCleanSeed(entry));
         }
 
         internal bool CanGenerateTOTP(PwEntry entry)
@@ -135,9 +145,50 @@ namespace KeeTrayTOTP.Helpers
             return entry.Strings.Exists(_settings.TOTPSettingsStringName);
         }
 
+        internal KeyUri ReadAsKeyUri(PwEntry entry)
+        {
+            if (entry.Strings.Exists(_settings.TOTPKeyUriStringName))
+            {
+                // load in this format
+                return new KeyUri(new Uri(entry.Strings.Get(_settings.TOTPKeyUriStringName).ReadString()));
+            }
+            else if (SettingsValidate(entry) && HasSeed(entry))
+            {
+                if (!SeedValidate(entry))
+                {
+                    throw new InvalidOperationException("Cannot generate KeyUri for entry");
+                }
+
+                var settings = SettingsGet(entry);
+                var seed = GetCleanSeed(entry);
+
+                return KeyUri.CreateFromLegacySettings(settings, seed);
+            }
+
+            return null;
+        }
+
+        internal void SetKeyUri(PwEntry entry, KeyUri keyUri)
+        {
+            if (_settings.PreferKeyUri)
+            {
+                entry.Strings.Set(_settings.TOTPKeyUriStringName, new KeePassLib.Security.ProtectedString(true, keyUri.GetUri().AbsoluteUri));
+                entry.Strings.Remove(_settings.TOTPSeedStringName);
+                entry.Strings.Remove(_settings.TOTPSettingsStringName);
+            }
+            else
+            {
+                entry.Strings.Set(_settings.TOTPSeedStringName, new KeePassLib.Security.ProtectedString(true, keyUri.Secret));
+                string settings = keyUri.ToLegacySettings();
+                entry.Strings.Set(_settings.TOTPSettingsStringName, new KeePassLib.Security.ProtectedString(true, settings));
+                entry.Strings.Remove(_settings.TOTPKeyUriStringName);
+            }
+        }
+
         private static bool UrlIsValid(string[] settings)
         {
             if (settings.Length < 3)
+        
             {
                 return false;
             }
@@ -180,6 +231,5 @@ namespace KeeTrayTOTP.Helpers
 
             return true;
         }
-
     }
 }

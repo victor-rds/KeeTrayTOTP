@@ -18,9 +18,12 @@ namespace KeeTrayTOTP
             internal const string LegacyTrayMenuProviderEnable = "traymenulegacymenuprovider_enable";
             internal const string NotifyContextVisible = "notifycontext_visible";
 
+            internal const string PreferKeyUri = "prefer_keyuri";
+
             internal const string TimeCorrectionEnable = "timecorrection_enable";
             internal const string TimeCorrectionRefreshTime = "timecorrection_refreshtime";
 
+            internal const string TOTPKeyUriStringName = "totp_keyuri";
             internal const string TOTPSeedStringName = "totpseed_stringname";
             internal const string TOTPSettingsStringName = "totpsettings_stringname";
 
@@ -135,6 +138,12 @@ namespace KeeTrayTOTP
             set { _keePassCustomConfig.SetString(SettingKeys.TimeCorrectionList, string.Join(";", value)); }
         }
 
+        public string TOTPKeyUriStringName
+        {
+            get { return _keePassCustomConfig.GetString(SettingKeys.TOTPKeyUriStringName, "KeyUri"); }
+            set { _keePassCustomConfig.SetString(SettingKeys.TOTPKeyUriStringName, value); }
+        }
+
         public string TOTPSeedStringName
         {
             get { return _keePassCustomConfig.GetString(SettingKeys.TOTPSeedStringName, Localization.Strings.TOTPSeed); }
@@ -145,6 +154,12 @@ namespace KeeTrayTOTP
         {
             get { return _keePassCustomConfig.GetString(SettingKeys.TOTPSettingsStringName, Localization.Strings.TOTPSettings); }
             set { _keePassCustomConfig.SetString(SettingKeys.TOTPSettingsStringName, value); }
+        }
+
+        public bool PreferKeyUri
+        {
+            get { return _keePassCustomConfig.GetBool(SettingKeys.PreferKeyUri, true); }
+            set { _keePassCustomConfig.SetBool(SettingKeys.PreferKeyUri, value); }
         }
 
         public bool FirstInstallShown
@@ -175,6 +190,8 @@ namespace KeeTrayTOTP
             _keePassCustomConfig.SetString(SettingKeys.TimeCorrectionRefreshTime, null);
 
             // Storage
+            _keePassCustomConfig.SetString(SettingKeys.PreferKeyUri, null);
+            _keePassCustomConfig.SetString(SettingKeys.TOTPKeyUriStringName, null);
             _keePassCustomConfig.SetString(SettingKeys.TOTPSeedStringName, null);
             _keePassCustomConfig.SetString(SettingKeys.TOTPSettingsStringName, null);
         }

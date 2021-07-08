@@ -322,26 +322,19 @@ namespace KeeTrayTOTP
                 {
                     if (TOTPEntryValidator.SettingsValidate(e.Context.Entry))
                     {
-                        string[] settings = TOTPEntryValidator.SettingsGet(e.Context.Entry);
-
-                        TOTPProvider totpGenerator = new TOTPProvider(settings, this.TimeCorrections);
-
                         string invalidCharacters;
 
                         if (TOTPEntryValidator.SeedValidate(e.Context.Entry, out invalidCharacters))
                         {
+                            TOTPProvider totpGenerator = new TOTPProvider(TOTPEntryValidator, e.Context.Entry, this.TimeCorrections);
                             e.Context.Entry.Touch(false);
-                            string totp = totpGenerator.GenerateByByte(Base32.Decode(TOTPEntryValidator.SeedGet(e.Context.Entry).ReadString().ExtWithoutSpaces()));
+                            var totp = totpGenerator.Generate();
                             e.Text = StrUtil.ReplaceCaseInsensitive(e.Text, Settings.AutoTypeFieldName.ExtWithBrackets(), totp);
                         }
                         else
                         {
                             e.Text = string.Empty;
                             MessageService.ShowWarning(Localization.Strings.ErrorBadSeed + invalidCharacters.ExtWithParenthesis().ExtWithSpaceBefore());
-                        }
-                        if (totpGenerator.TimeCorrectionError)
-                        {
-                            MessageService.ShowWarning(Localization.Strings.WarningBadURL);
                         }
                     }
                     else
@@ -368,16 +361,14 @@ namespace KeeTrayTOTP
             {
                 if (TOTPEntryValidator.SettingsValidate(pe))
                 {
-                    string[] settings = TOTPEntryValidator.SettingsGet(pe);
-
-                    TOTPProvider totpGenerator = new TOTPProvider(settings, this.TimeCorrections);
+                    TOTPProvider totpGenerator = new TOTPProvider(TOTPEntryValidator, pe, this.TimeCorrections);
 
                     string invalidCharacters;
                     if (TOTPEntryValidator.SeedValidate(pe, out invalidCharacters))
                     {
                         pe.Touch(false);
 
-                        string totp = totpGenerator.Generate(TOTPEntryValidator.SeedGet(pe).ReadString().ExtWithoutSpaces());
+                        var totp = totpGenerator.Generate();
 
                         ClipboardUtil.CopyAndMinimize(totp, true, PluginHost.MainWindow, pe, PluginHost.MainWindow.ActiveDatabase);
                         PluginHost.MainWindow.StartClipboardCountdown();
@@ -385,10 +376,6 @@ namespace KeeTrayTOTP
                     else
                     {
                         MessageService.ShowWarning(Localization.Strings.ErrorBadSeed + invalidCharacters.ExtWithParenthesis().ExtWithSpaceBefore());
-                    }
-                    if (totpGenerator.TimeCorrectionError)
-                    {
-                        MessageService.ShowWarning(Localization.Strings.WarningBadURL);
                     }
                 }
                 else

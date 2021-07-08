@@ -97,7 +97,7 @@ namespace KeeTrayTOTP.Tests
         public void TimeCorrectionList_GetAndSetChangeCorrectField()
         {
             sut.TimeCorrectionList.Should().HaveCount(0, "because that is the default value");
-            sut.TimeCorrectionList = new [] { "Url1", "Url2", "Url3"};
+            sut.TimeCorrectionList = new[] { "Url1", "Url2", "Url3" };
             sut.TimeCorrectionList.Should().BeEquivalentTo(new[] { "Url1", "Url2", "Url3" });
         }
 
@@ -149,6 +149,26 @@ namespace KeeTrayTOTP.Tests
             sut.TOTPSettingsStringName.Should().Be("SettingsSettingsSettings", "because the setting was changed to a non-default value");
             sut.Reset();
             sut.TOTPSettingsStringName.Should().Be("TOTP Settings", "because settings are reset");
+        }
+
+        [TestMethod]
+        public void PreferKeyUri_GetAndSetChangeCorrectField()
+        {
+            sut.PreferKeyUri.Should().BeTrue("because that is the default value");
+            sut.PreferKeyUri = false;
+            sut.PreferKeyUri.Should().BeFalse("because the setting was changed to a non-default value");
+            sut.Reset();
+            sut.PreferKeyUri.Should().BeTrue("because settings are reset");
+        }
+
+        [TestMethod]
+        public void TOTPKeyUriStringName_GetAndSetChangeCorrectField()
+        {
+            sut.TOTPKeyUriStringName.Should().Be("KeyUri", "because that is the default value");
+            sut.TOTPKeyUriStringName = "KeyUriKeyUriKeyUri";
+            sut.TOTPKeyUriStringName.Should().Be("KeyUriKeyUriKeyUri", "because the setting was changed to a non-default value");
+            sut.Reset();
+            sut.TOTPKeyUriStringName.Should().Be("KeyUri", "because settings are reset");
         }
 
         [TestMethod]

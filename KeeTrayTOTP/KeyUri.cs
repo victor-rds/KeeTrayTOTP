@@ -7,11 +7,56 @@ namespace KeeTrayTOTP
 {
     public class KeyUri
     {
+        public enum TotpFormat
+        {
+            /// <summary>
+            /// Default format
+            /// </summary>
+            RFC6238,
+            /// <summary>
+            /// Custom format used by steam
+            /// </summary>
+            Steam,
+        }
+
         private static string[] ValidAlgorithms = new[] { "SHA1", "SHA256", "SHA512" };
         private const string DefaultAlgorithm = "SHA1";
         private const string ValidScheme = "otpauth";
+        private const string ValidType = "totp";
         private const int DefaultDigits = 6;
         private const int DefaultPeriod = 30;
+        private const TotpFormat DefaultFormat = TotpFormat.RFC6238;
+
+        public static KeyUri CreateFromLegacySettings(string[] settings, string secret)
+        {
+            if (settings == null)
+            {
+                throw new ArgumentNullException("settings", "Should not be null.");
+            }
+            if (settings.Length < 2)
+            {
+                throw new ArgumentOutOfRangeException("settings", "Should have at least two entries");
+            }
+            if (secret == null)
+            {
+                throw new ArgumentOutOfRangeException("secret", "Should not be null.");
+            }
+
+            var issuer = "SomeIssuer";
+            var digits = settings[1] == "S" ? "5" : settings[1];
+            var format = settings[1] == "S" ? TotpFormat.Steam : TotpFormat.RFC6238;
+            var period = settings[0];
+            var tcurl = (settings.Length > 2) ? settings[2] : null;
+
+            // Construct a uri
+            var uri = string.Format("{0}://{1}/{2}:SomeLabel?secret={3}&period={4}&digits={5}&format={6}", ValidScheme, ValidType, Uri.EscapeDataString(issuer), Uri.EscapeDataString(secret), Uri.EscapeDataString(period), Uri.EscapeDataString(digits), format.ToString());
+            if (tcurl != null)
+            {
+                uri += "&timecorrectionurl=" + Uri.EscapeDataString(tcurl);
+            }
+
+            return new KeyUri(new Uri(uri));
+        }
 
         public KeyUri(Uri uri)
         {
@@ -29,10 +74,33 @@ namespace KeeTrayTOTP
 
             this.Secret = EnsureValidSecret(parsedQuery);
             this.Algorithm = EnsureValidAlgorithm(parsedQuery);
-            this.Digits = EnsureValidDigits(parsedQuery);
             this.Period = EnsureValidPeriod(parsedQuery);
+            this.Digits = EnsureValidDigits(parsedQuery);
+            this.TimeCorrectionUrl = EnsureValidTimeCorrectionUrl(parsedQuery);
+            this.Format = EnsureValidFormat(parsedQuery);
 
             EnsureValidLabelAndIssuer(uri, parsedQuery);
+        }
+
+        private Uri EnsureValidTimeCorrectionUrl(NameValueCollection query)
+        {
+            Uri uri;
+            if (query.AllKeys.Contains("timecorrectionurl"))
+            {
+                if (!Uri.TryCreate(query["timecorrectionurl"], UriKind.Absolute, out uri))
+                {
+                    throw new ArgumentOutOfRangeException("query", "Not a valid timecorrection url");
+                }
+
+                if (!uri.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) && !uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new ArgumentOutOfRangeException("query", "Time correction urls must start with http:// or https://");
+                }
+
+                return uri;
+            }
+
+            return null;
         }
 
         private void EnsureValidLabelAndIssuer(Uri uri, NameValueCollection query)
@@ -83,6 +151,17 @@ namespace KeeTrayTOTP
             return digits;
         }
 
+        private TotpFormat EnsureValidFormat(NameValueCollection query)
+        {
+            var format = DefaultFormat;
+            if (query.AllKeys.Contains("format") && !Enum.TryParse(query["format"], out format))
+            {
+                throw new ArgumentOutOfRangeException("query", "Not a valid TOTP Format");
+            }
+
+            return format;
+        }
+
         private int EnsureValidPeriod(NameValueCollection query)
         {
             int period = DefaultPeriod;
@@ -129,6 +208,8 @@ namespace KeeTrayTOTP
         public int Period { get; set; }
         public string Label { get; set; }
         public string Issuer { get; set; }
+        public TotpFormat Format { get; set; }
+        public Uri TimeCorrectionUrl { get; set; }
 
         /// <summary>
         /// Naive (and probably buggy) query string parser, but we do not want a dependency on System.Web
@@ -151,23 +232,41 @@ namespace KeeTrayTOTP
             return result;
         }
 
+        internal string ToLegacySettings()
+        {
+            var format = Digits == 5 ? "S" : Digits.ToString();
+            var period = Period.ToString();
+            var tc = TimeCorrectionUrl != null ? TimeCorrectionUrl.AbsoluteUri : null;
+            var parts = new string[] { format, period, tc };
+
+            return string.Concat(';', parts.Where(c => c != null));
+        }
+
         public Uri GetUri()
         {
             var newQuery = new NameValueCollection();
-            if (Period != 30)
+            if (Period != DefaultPeriod)
             {
                 newQuery["period"] = Convert.ToString(Period);
             }
-            if (Digits != 6)
+            if (Digits != DefaultDigits)
             {
                 newQuery["digits"] = Convert.ToString(Digits);
             }
-            if (Algorithm != "SHA1")
+            if (Algorithm != DefaultAlgorithm)
             {
                 newQuery["algorithm"] = Algorithm;
             }
+            if (Format != DefaultFormat)
+            {
+                newQuery["format"] = Format.ToString();
+            }
             newQuery["secret"] = Secret;
             newQuery["issuer"] = Issuer;
+            if (TimeCorrectionUrl != null)
+            {
+                newQuery["timecorrectionurl"] = Uri.EscapeDataString(TimeCorrectionUrl.AbsoluteUri);
+            }
 
             var builder = new UriBuilder(ValidScheme, Type)
             {
