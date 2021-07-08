@@ -63,7 +63,6 @@
             this.ButtonOK.TabIndex = 0;
             this.ButtonOK.Text = "&OK";
             this.ButtonOK.UseVisualStyleBackColor = true;
-            this.ButtonOK.Click += new System.EventHandler(this.ButtonOK_Click);
             // 
             // ButtonCancel
             // 
@@ -76,7 +75,6 @@
             this.ButtonCancel.TabIndex = 6;
             this.ButtonCancel.Text = "&Cancel";
             this.ButtonCancel.UseVisualStyleBackColor = true;
-            this.ButtonCancel.Click += new System.EventHandler(this.ButtonCancel_Click);
             // 
             // LabelServerHttpUrlTimeCorrection
             // 
@@ -198,6 +196,7 @@
             this.HelpProviderTimeCorrection.SetShowHelp(this.ComboBoxUrlTimeCorrection, true);
             this.ComboBoxUrlTimeCorrection.Size = new System.Drawing.Size(233, 21);
             this.ComboBoxUrlTimeCorrection.TabIndex = 2;
+            this.ComboBoxUrlTimeCorrection.KeyUp += new System.Windows.Forms.KeyEventHandler(this.ComboBoxUrlTimeCorrection_KeyUp);
             // 
             // FormTimeCorrection
             // 
